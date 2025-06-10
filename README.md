@@ -1,10 +1,16 @@
 
 
 ## Uploading server files to S3
-BUCKET=$("bucketname")
-# Backup this current save to its own unique folder
-DATESTAMP=$(date +"%Y%m%d")
-sudo aws s3 sync ~/mcserver/ s3://$BUCKET/$DATESTAMP_$ARG1
+
+``` sh
+BUCKET="bucket-name"
+BACKUP_NAME="rust_backup_$(date +%F).tar.gz"
+
+cd ~/rust/server
+
+sudo tar czf "$BACKUP_NAME" server cfg HarmonyMods
+sudo aws s3 cp "$BACKUP_NAME" "s3://$BUCKET/backups/$BACKUP_NAME"
+```
 
 # Update the s3://bucket /latest folder, overwriting any data.
 sudo aws s3 sync ~/mcserver/ s3://$BUCKET/latest --delete
