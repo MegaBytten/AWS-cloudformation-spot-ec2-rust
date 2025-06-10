@@ -1,3 +1,8 @@
+# TODO
+* Currently does not pull server data from S3 in Bootstrap script
+* Move bootstrap.sh into first-time setup section
+* Insert bootstrap script into infrastructure.yaml
+
 
 
 ## Uploading server files to S3
@@ -15,5 +20,6 @@ sudo aws s3 cp "$BACKUP_NAME" "s3://$BUCKET/backups/latest.tar.gz"
 rm "$BACKUP_NAME"
 ```
 
-# Update the s3://bucket /latest folder, overwriting any data.
-sudo aws s3 sync ~/mcserver/ s3://$BUCKET/latest --delete
+
+# Rust configuration settings
+* 4000 mapsize = 9gb initial load

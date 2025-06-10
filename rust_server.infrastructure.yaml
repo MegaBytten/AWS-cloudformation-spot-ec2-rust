@@ -1,0 +1,142 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Persistent Spot EC2 instance for Rust Server with customizable instance type, and EBS volume
+
+Parameters:
+  InstanceType:
+    Type: String
+    Default: r7i.large
+    Description: EC2 instance to run rust server. 16GB RAM 2vCPU USD$0.042/hr spot instance. Might be able to get away with 10-14GB RAM
+
+  EbsVolumeSize:
+    Type: Number
+    Default: 20
+    Description: Size in GB for the root EBS volume. Minimum should be 10.
+
+  BucketName:
+    Type: String
+    Default: "rust-server-backups"
+    Description: Name of the S3 bucket to fetch the latest Rust server backup from. Fetches s3://BucketName/backups/latest.tar.gz
+
+  DefaultVPC:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC to deploy the instance into (use default if unsure)
+
+
+
+Resources:
+  
+  # Create IAM Role rustserver_ec2tos3_fullaccess so EC2 can access the S3 bucket specified in the parameters
+  EC2S3AccessRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: rustserver_ec2tos3_fullaccess
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: AccessS3RustBackups
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - s3:ListBucket
+                Resource: 
+                  - !Sub arn:aws:s3:::${BucketName}
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                Resource: 
+                  - !Sub arn:aws:s3:::${BucketName}/*
+  EC2S3AccessInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: rustserver_ec2tos3_fullaccess
+      Path: /
+      Roles:
+        - !Ref EC2S3AccessRole
+
+  RustSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: Rust-Server
+      GroupDescription: Allow SSH and Rust server port access
+      VpcId: !Ref DefaultVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp   # SSH
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp   # Rust
+          FromPort: 27015
+          ToPort: 27016
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 28015 # Rust Server port
+          ToPort: 28016 # RCON Port
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 27036
+          ToPort: 27036
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 28083
+          ToPort: 28083
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: udp   # UDP required for threaded texture creation
+          FromPort: 27015
+          ToPort: 27015
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: udp
+          FromPort: 27031
+          ToPort: 27036
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: udp
+          FromPort: 28015
+          ToPort: 28015
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1       # Allow all outbound traffic
+          CidrIp: 0.0.0.0/0
+
+  RustLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: rust-spot-template
+      LaunchTemplateData:
+        InstanceType: !Ref InstanceType
+        KeyName: key_name
+        ImageId: ami-04da26f654d3383cf  # Ubuntu 22.04 LTS in eu-west-2
+        SecurityGroupIds:
+          - !Ref RustSecurityGroup
+        BlockDeviceMappings:
+          - DeviceName: /dev/xvda
+            Ebs:
+              VolumeSize: !Ref EbsVolumeSize
+              VolumeType: gp3
+              DeleteOnTermination: true
+        InstanceMarketOptions:
+          MarketType: spot
+          SpotOptions:
+            SpotInstanceType: persistent
+            InstanceInterruptionBehavior: stop
+        IamInstanceProfile:
+          Arn: !GetAtt EC2S3AccessInstanceProfile.Arn
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash
+            # TODO insert here
+
+  RustSpotInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      LaunchTemplate:
+        LaunchTemplateId: !Ref RustLaunchTemplate
+        Version: !GetAtt RustLaunchTemplate.LatestVersionNumber
