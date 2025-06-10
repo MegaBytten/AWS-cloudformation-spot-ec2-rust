@@ -10,6 +10,9 @@ cd ~/rust/server
 
 sudo tar czf "$BACKUP_NAME" server cfg HarmonyMods
 sudo aws s3 cp "$BACKUP_NAME" "s3://$BUCKET/backups/$BACKUP_NAME"
+sudo aws s3 cp "$BACKUP_NAME" "s3://$BUCKET/backups/latest.tar.gz"
+
+rm "$BACKUP_NAME"
 ```
 
 # Update the s3://bucket /latest folder, overwriting any data.
