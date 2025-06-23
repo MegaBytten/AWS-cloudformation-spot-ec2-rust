@@ -10,10 +10,9 @@ MAP_SIZE="3500"
 RCON_PASSWORD="password"
 SERVER_PW="password"
 HOSTNAME="My Rust Server"
-STEAMID_OWNER="0000000000000000"
+STEAMID_OWNER="76561198037342814"
 
 # install AWS to push to S3 bucket
-echo "Installing AWS CLI..."
 cd ~
 curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
 sudo unzip -q awscliv2.zip && sudo ./aws/install
@@ -40,7 +39,6 @@ ownerid "${STEAMID_OWNER}" "admin"
 EOF
 
 # Write the Rust systemd service
-# touch /home/ubuntu/rust/server/rustserverlog.txt
 sudo tee /etc/systemd/system/rustserver.service > /dev/null <<EOF
 [Unit]
 Description=Rust Dedicated Server
