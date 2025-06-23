@@ -10,6 +10,7 @@ MAP_SIZE="3500"
 RCON_PASSWORD="password"
 SERVER_PW="password"
 HOSTNAME="My Rust Server"
+STEAMID_OWNER="0000000000000000"
 
 # install AWS to push to S3 bucket
 echo "Installing AWS CLI..."
@@ -34,8 +35,8 @@ mkdir -p ~/rust/server && /usr/games/steamcmd +@sSteamCmdForcePlatformType linux
 ###### --- SERVER SETUP --- #######
 ###################################
 # add owner and mod permissions via users.cfg permissions file
-mkdir -p $HOME/rust/server/server/server2/cfg && sudo tee $HOME/rust/server/server/server2/cfg/users.cfg > /dev/null <<EOF
-ownerid "76561198037342814" "Megabytten"
+mkdir -p $HOME/rust/server/server/${SERVER_IDENTITY}/cfg && sudo tee $HOME/rust/server/server/${SERVER_IDENTITY}/cfg/users.cfg > /dev/null <<EOF
+ownerid "${STEAMID_OWNER}" "admin"
 EOF
 
 # Write the Rust systemd service
