@@ -10,7 +10,7 @@ MAP_SIZE="3500"
 RCON_PASSWORD="password"
 SERVER_PW="password"
 HOSTNAME="My Rust Server"
-STEAMID_OWNER="76561198037342814"
+STEAMID_OWNER="00000000000000000"
 
 # install AWS to push to S3 bucket
 cd ~
