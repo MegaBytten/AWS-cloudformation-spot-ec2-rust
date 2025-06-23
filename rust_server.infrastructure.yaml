@@ -12,11 +12,6 @@ Parameters:
     Default: 20
     Description: Size in GB for the root EBS volume. Minimum should be 10.
 
-  BucketName:
-    Type: String
-    Default: "rust-server-backups"
-    Description: Name of the S3 bucket to fetch the latest Rust server backup from. Fetches s3://BucketName/backups/latest.tar.gz
-
   DefaultVPC:
     Type: AWS::EC2::VPC::Id
     Description: VPC to deploy the instance into (use default if unsure)
@@ -24,7 +19,6 @@ Parameters:
 
 
 Resources:
-  
   # Create IAM Role rustserver_ec2tos3_fullaccess so EC2 can access the S3 bucket specified in the parameters
   EC2S3AccessRole:
     Type: AWS::IAM::Role
