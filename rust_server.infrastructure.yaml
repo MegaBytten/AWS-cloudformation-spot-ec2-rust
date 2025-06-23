@@ -15,6 +15,45 @@ Parameters:
   DefaultVPC:
     Type: AWS::EC2::VPC::Id
     Description: VPC to deploy the instance into (use default if unsure)
+  
+  ServerIdentity:
+    Type: String
+    Default: server
+    Description: +server.identity value
+
+  Seed:
+    Type: String
+    Default: '890123456789'
+    Description: +server.seed value
+
+  MaxPlayers:
+    Type: Number
+    Default: 5
+    Description: +server.maxplayers value
+
+  MapSize:
+    Type: Number
+    Default: 3500
+    Description: +server.worldsize value
+
+  RconPassword:
+    Type: String
+    NoEcho: true
+    Description: RCON console password
+
+  ServerPassword:
+    Type: String
+    NoEcho: true
+    Description: Player join password
+
+  Hostname:
+    Type: String
+    Default: 'My Rust Server'
+    Description: +server.hostname value
+
+  SteamIdOwner:
+    Type: String
+    Description: SteamID of the server owner
 
 
 
@@ -63,7 +102,6 @@ Resources:
       GroupName: Rust-Server-SG
       GroupDescription: Allow SSH and Rust server port access
       VpcId: !Ref DefaultVPC
-      # Server requires TCP+UDP 28015, RCON requires TCP+UDP 28016
       SecurityGroupIngress:
         - IpProtocol: tcp   # SSH
           FromPort: 22
@@ -107,7 +145,66 @@ Resources:
         UserData:
           Fn::Base64: !Sub |
             #!/bin/bash
-            # TODO insert here
+            SERVER_IDENTITY="${ServerIdentity}"
+            SEED="${Seed}"
+            MAX_PLAYERS="${MaxPlayers}"
+            MAP_SIZE="${MapSize}"
+            RCON_PASSWORD="${RconPassword}"
+            SERVER_PW="${ServerPassword}"
+            HOSTNAME="${Hostname}"
+            STEAMID_OWNER="${SteamIdOwner}"
+            
+            cd ~
+            curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            sudo unzip -q awscliv2.zip && sudo ./aws/install
+            rm -rf awscliv2.zip aws/
+            
+            sudo apt update && sudo apt upgrade -y
+            sudo apt install unzip 
+            sudo add-apt-repository multiverse -y && sudo dpkg --add-architecture i386 && sudo apt update && sudo apt install -y steamcmd
+            
+            mkdir -p ~/rust/server && /usr/games/steamcmd +@sSteamCmdForcePlatformType linux +force_install_dir $HOME/rust/server +login anonymous +app_update 258550 +quit
+            mkdir -p $HOME/rust/server/server/${SERVER_IDENTITY}/cfg && sudo tee $HOME/rust/server/server/${SERVER_IDENTITY}/cfg/users.cfg > /dev/null <<EOF
+            ownerid "${STEAMID_OWNER}" "admin"
+            EOF
+            
+            sudo tee /etc/systemd/system/rustserver.service > /dev/null <<EOF
+            [Unit]
+            Description=Rust Dedicated Server
+            Wants=network-online.target
+            After=network-online.target
+
+            [Service]
+            Environment=SteamAppId=258550
+            Environment=LD_LIBRARY_PATH=$HOME/rust/server:\$LD_LIBRARY_PATH
+            Type=simple
+            TimeoutSec=900
+            Restart=on-failure
+            RestartSec=10
+            KillSignal=SIGINT
+            User=ubuntu
+            Group=ubuntu
+            WorkingDirectory=$HOME/rust/server
+            ExecStartPre=/usr/games/steamcmd +@sSteamCmdForcePlatformType linux +force_install_dir $HOME/rust/server +login anonymous +app_update 258550 +quit
+            ExecStart=$HOME/rust/server/RustDedicated -batchmode +server.identity "${SERVER_IDENTITY}" +server.port 28015 +server.level "Procedural Map" +server.seed "${SEED}" +server.worldsize "${MAP_SIZE}" +server.maxplayers "${MAX_PLAYERS}" +server.saveinterval 150 +rcon.port 28016 +rcon.password "${RCON_PASSWORD}" +rcon.web 1 +server.password "${SERVER_PW}" +server.hostname "${HOSTNAME}" +decay.upkeep false -logfile /home/ubuntu/rust/server/rustserverlog.txt
+
+            [Install]
+            WantedBy=multi-user.target
+            EOF
+            
+            wget https://github.com/OxideMod/Oxide.Rust/releases/latest/download/Oxide.Rust-linux.zip -O oxide.zip && unzip oxide.zip -d oxide-temp
+            cp -r oxide-temp/* $HOME/rust/server/
+            rm -rf oxide.zip oxide-temp
+
+            mkdir -p $HOME/rust/server/oxide/plugins/ 
+            wget --no-clobber \
+                -P "$HOME/rust/server/oxide/plugins" \
+                https://umod.org/plugins/MagicLoot.cs \
+                https://umod.org/plugins/GatherManager.cs
+
+            sudo systemctl daemon-reload
+            sudo systemctl enable rustserver
+            sudo systemctl start rustserver
 
   RustSpotInstance:
     Type: AWS::EC2::Instance
