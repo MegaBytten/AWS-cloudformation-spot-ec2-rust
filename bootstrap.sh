@@ -3,6 +3,7 @@
 ###################################
 ###### --- CONFIGURATION --- ######
 ###################################
+# If SSH-ing and running the commands, ensure to have the following variables:
 SERVER_IDENTITY="server2"
 SEED="890123456789"
 MAX_PLAYERS="5"
@@ -57,7 +58,7 @@ User=ubuntu
 Group=ubuntu
 WorkingDirectory=$HOME/rust/server
 ExecStartPre=/usr/games/steamcmd +@sSteamCmdForcePlatformType linux +force_install_dir $HOME/rust/server +login anonymous +app_update 258550 +quit
-ExecStart=$HOME/rust/server/RustDedicated -batchmode +server.identity "${SERVER_IDENTITY}" +server.port 28015 +server.level "Procedural Map" +server.seed "${SEED}" +server.worldsize "${MAP_SIZE}" +server.maxplayers "${MAX_PLAYERS}" +server.saveinterval 150 +rcon.port 28016 +rcon.password "${RCON_PASSWORD}" +rcon.web 1 +server.password "${SERVER_PW}" +server.hostname "${HOSTNAME}" +decay.upkeep false -logfile /home/ubuntu/rust/server/rustserverlog.txt
+ExecStart=$HOME/rust/server/RustDedicated -batchmode +server.identity "${SERVER_IDENTITY}" +server.port 28015 +server.level "Procedural Map" +server.seed "${SEED}" +server.worldsize "${MAP_SIZE}" +server.maxplayers "${MAX_PLAYERS}" +server.saveinterval 150 +rcon.port 28016 +rcon.password "${RCON_PASSWORD}" +rcon.web 1 +server.password "${SERVER_PW}" +server.hostname "${HOSTNAME}" +decay.upkeep false +decay.scale 0 -logfile /home/ubuntu/rust/server/rustserverlog.txt
 
 [Install]
 WantedBy=multi-user.target
